@@ -1,8 +1,10 @@
 using UnityEngine;
 
-public class Ball : MonoBehaviour
+public class Baseball : MonoBehaviour
 {
-    public float speedReductionFactor = 0.7f; // 減速係数（1未満の値）
+    public float initialSpeed = 50f; // ボールの初速
+    public float airResistanceFactor = 0.01f; // 空気抵抗係数
+    public float verticalAngle = 10f; // ボールの投球角度（度単位）
 
     private Rigidbody rb;
 
@@ -10,20 +12,24 @@ public class Ball : MonoBehaviour
     {
         rb = GetComponent<Rigidbody>();
 
-        // 初期力をZ軸方向に加える
-        Vector3 initialForce = new Vector3(0, 2, -140); // Z軸方向の初期速度
-        rb.AddForce(initialForce, ForceMode.VelocityChange);
+        // ボールの初速度を計算（方向を逆に設定）
+        float radians = Mathf.Deg2Rad * verticalAngle; // 角度をラジアンに変換
+        Vector3 initialVelocity = new Vector3(0, Mathf.Sin(radians), -Mathf.Cos(radians)) * initialSpeed; // Z軸方向を逆転
+
+        // 初速度を設定
+        rb.linearVelocity = initialVelocity;
+
+        // 空気抵抗などのシミュレーションのため、重力を有効化
+        rb.useGravity = true;
     }
 
     void FixedUpdate()
     {
-        // 現在の速度を取得
-        Vector3 currentVelocity = rb.linearVelocity;
+        // 空気抵抗を計算
+        Vector3 velocity = rb.linearVelocity;
+        Vector3 airResistance = -velocity.normalized * airResistanceFactor * velocity.sqrMagnitude;
 
-        // Z軸の速度を減少させる
-        currentVelocity.z *= speedReductionFactor;
-
-        // X軸とY軸の速度はそのまま維持
-        rb.linearVelocity = currentVelocity;
+        // 空気抵抗を適用
+        rb.AddForce(airResistance, ForceMode.Acceleration);
     }
 }
