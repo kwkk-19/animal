@@ -1,80 +1,113 @@
+using System.Collections;
 using UnityEngine;
 
 public class BatSwing : MonoBehaviour
 {
-    public Transform batBase;   // バットの基底（回転の中心）
-    public float swingSpeed = 300f; // スイング速度
-    public float swingAngle = 360f; // スイングする角度
-    public Camera mainCamera;  // メインカメラ
-    public LayerMask strikeZoneLayer; // ストライクゾーンのレイヤー
+    public GameObject strikeZone;  // ストライクゾーンオブジェクト
+    public Transform batTip;       // バットの先端
+    public Transform batBase;      // バットの基底（グリップ部分）
+    public float swingSpeed = 2f;  // スイング速度
+    public Camera mainCamera;      // カメラ
+    public float returnAngleThreshold = 300f;  // 初期位置に戻る前に回転する角度
 
-    private Quaternion initialRotation; // バットの初期回転
-    private Quaternion targetRotation;  // バットの目標回転
-    private bool isSwinging = false;    // スイング中かどうか
-    private float currentSwingAngle = 0f; // 現在のスイング角度
+    private bool isSwinging = false;  // スイング中かどうか
+    private Quaternion initialRotation;  // バットの初期回転
+    private Vector3 targetPoint;  // クリックされた打点位置
+    private Quaternion targetRotation;  // バットのスイング方向
 
     void Start()
     {
-        // 初期回転を記録
-        initialRotation = batBase.rotation;
+        initialRotation = transform.rotation;  // 初期回転を記録
     }
 
     void Update()
     {
-        // ストライクゾーンのクリックを検出
-        if (Input.GetMouseButtonDown(0) && !isSwinging)
+        if (Input.GetMouseButtonDown(0) && !isSwinging)  // 左クリックでスイング開始
         {
-            DetectStrikeZoneClick();
+            SetTargetAndSwing();
         }
 
-        // スイング中であれば処理を進める
-        if (isSwinging)
+        if (Input.GetKeyDown(KeyCode.Return))  // エンターキーでリセット
         {
-            PerformSwing();
-        }
-
-        // エンターキーでバットをリセット
-        if (Input.GetKeyDown(KeyCode.Return))
-        {
+            StopAllCoroutines();  // スイング動作を停止
             ResetBatPosition();
         }
     }
 
-    private void DetectStrikeZoneClick()
+    void SetTargetAndSwing()
     {
+        // カメラからクリック位置を取得
         Ray ray = mainCamera.ScreenPointToRay(Input.mousePosition);
-        if (Physics.Raycast(ray, out RaycastHit hit, Mathf.Infinity, strikeZoneLayer))
+        if (Physics.Raycast(ray, out RaycastHit hit, Mathf.Infinity, LayerMask.GetMask("StrikeZone")))
         {
-            // クリックした座標を計算し、バットの目標回転を設定
-            Vector3 directionToTarget = (hit.point - batBase.position).normalized;
-            targetRotation = Quaternion.LookRotation(directionToTarget);
+            targetPoint = hit.point;
 
-            // スイングを開始
-            isSwinging = true;
-            currentSwingAngle = 0f;
+            // バットの基底からクリック位置への方向を計算
+            Vector3 directionToTarget = (targetPoint - batBase.position).normalized;
+
+            // バットの基底から先端への現在の方向
+            Vector3 batDirection = (batTip.position - batBase.position).normalized;
+
+            // 回転軸を計算（バットの方向とターゲット方向の外積）
+            Vector3 rotationAxis = Vector3.Cross(batDirection, directionToTarget);
+
+            // 回転角度を計算（バット方向をターゲット方向に合わせる角度）
+            float angle = Vector3.SignedAngle(batDirection, directionToTarget, rotationAxis);
+
+            // バットを目標角度に傾ける
+            targetRotation = Quaternion.AngleAxis(angle, rotationAxis) * transform.rotation;
+
+            StartCoroutine(PrepareAndSwing());
         }
     }
 
-    private void PerformSwing()
+    IEnumerator PrepareAndSwing()
     {
-        // バットを目標方向に向けて傾ける
-        batBase.rotation = Quaternion.RotateTowards(batBase.rotation, targetRotation, swingSpeed * Time.deltaTime);
+        isSwinging = true;
 
-        // 現在の回転角度を増加
-        currentSwingAngle += swingSpeed * Time.deltaTime;
-
-        // 1回転（360度）を完了したらスイング終了
-        if (currentSwingAngle >= swingAngle)
+        // バットをクリック位置の方向に向ける
+        while (Quaternion.Angle(transform.rotation, targetRotation) > 0.1f)
         {
-            isSwinging = false;
+            transform.rotation = Quaternion.RotateTowards(transform.rotation, targetRotation, swingSpeed * Time.deltaTime * 360f);
+            yield return null;
         }
+
+        yield return SwingBat();
     }
 
-    private void ResetBatPosition()
+    IEnumerator SwingBat()
     {
-        // 初期位置に戻す
-        batBase.rotation = initialRotation;
+        float currentAngle = 0f;
+        float step = swingSpeed * Time.deltaTime * 360f;  // 1フレームごとの回転角度
+
+        while (currentAngle < returnAngleThreshold)
+        {
+            // バットの基底を中心にY軸で回転
+            transform.RotateAround(batBase.position, Vector3.up, -step);
+            currentAngle += step;
+
+            yield return null;
+        }
+
+        StartCoroutine(ReturnToInitialPosition());
+    }
+
+    IEnumerator ReturnToInitialPosition()
+    {
+        // 初期位置にスムーズに戻す
+        while (Quaternion.Angle(transform.rotation, initialRotation) > 0.1f)
+        {
+            transform.rotation = Quaternion.RotateTowards(transform.rotation, initialRotation, swingSpeed * Time.deltaTime * 360f);
+            yield return null;
+        }
+
+        isSwinging = false;  // スイング終了
+    }
+
+    void ResetBatPosition()
+    {
+        // バットを初期位置に即座に戻す
+        transform.rotation = initialRotation;
         isSwinging = false;
-        currentSwingAngle = 0f;
     }
 }
