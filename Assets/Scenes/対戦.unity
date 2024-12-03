@@ -604,7 +604,7 @@ Transform:
   m_GameObject: {fileID: 231458557}
   serializedVersion: 2
   m_LocalRotation: {x: 1.009742e-28, y: -0, z: 4.2351647e-22, w: 1}
-  m_LocalPosition: {x: -0.3718, y: 1.183, z: -99.1911}
+  m_LocalPosition: {x: -0.3718, y: 1.305, z: -99.1911}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -3090,7 +3090,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 620c2d84c8e7d9b498fbea1cf70ded4a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  speed: 15
+  speed: 14
+  gravityScale: 1
   ballSpawnPoint: {fileID: 1141142879}
   ballPrefab: {fileID: 355107778}
   targetMarkerPrefab: {fileID: 285917469}
@@ -5681,7 +5682,7 @@ CapsuleCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 2
-  m_Radius: 0.0307
+  m_Radius: 0.05
   m_Height: 0.8
   m_Direction: 1
   m_Center: {x: 0, y: 0.4, z: -0.00010000076}
@@ -5697,12 +5698,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f63041d1da395414fb8dd39de2ad421a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  strikeZone: {fileID: 99182043}
-  batTip: {fileID: 231458558}
   batBase: {fileID: 60087464}
-  swingSpeed: 2.2
+  batTip: {fileID: 231458558}
+  swingSpeed: 2.3
+  swingAngle: 90
   mainCamera: {fileID: 330585545}
-  returnAngleThreshold: 200
+  strikeZoneLayer:
+    serializedVersion: 2
+    m_Bits: 8
 --- !u!1 &1310628372
 GameObject:
   m_ObjectHideFlags: 0
@@ -7425,7 +7428,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 400000, guid: ba347e6f303d54e4f8e5f3f45fd6597c, type: 3}
       propertyPath: m_LocalScale.y
-      value: 0.8
+      value: 0.9
       objectReference: {fileID: 0}
     - target: {fileID: 400000, guid: ba347e6f303d54e4f8e5f3f45fd6597c, type: 3}
       propertyPath: m_LocalScale.z
@@ -10268,8 +10271,8 @@ SceneRoots:
   - {fileID: 773989733}
   - {fileID: 480264933}
   - {fileID: 1576030382}
-  - {fileID: 231458558}
   - {fileID: 60087464}
+  - {fileID: 231458558}
   - {fileID: 1520278559}
   - {fileID: 1395319316}
   - {fileID: 1065094255}

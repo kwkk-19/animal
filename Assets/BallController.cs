@@ -3,6 +3,7 @@ using UnityEngine;
 public class BallController : MonoBehaviour
 {
     public float speed = 20f; // ボールのスピード
+    public float gravityScale = 1f; // 重力のスケール調整
     public Transform ballSpawnPoint; // ボールが発射される位置
     public GameObject ballPrefab; // ボールのプレハブ
     public GameObject targetMarkerPrefab; // ターゲット位置を示すマーカーのプレハブ
@@ -57,6 +58,7 @@ public class BallController : MonoBehaviour
             {
                 Vector3 direction = (targetPosition - ballSpawnPoint.position).normalized;
                 rb.linearVelocity = direction * speed; // マーカー位置に向かって発射
+                rb.useGravity = false; // 初期状態で重力無効
                 Debug.Log($"ボールを発射: {direction}");
             }
 
@@ -90,5 +92,19 @@ public class BallController : MonoBehaviour
         }
 
         Debug.Log("ボールとターゲットマーカーをリセットしました！");
+    }
+
+    void OnCollisionEnter(Collision collision)
+    {
+        if (collision.gameObject.CompareTag("Bat") && currentBall != null)
+        {
+            Rigidbody rb = currentBall.GetComponent<Rigidbody>();
+            if (rb != null)
+            {
+                rb.useGravity = true; // バットとの接触後に重力を適用
+                rb.mass = gravityScale; // 重力スケールを調整
+                Debug.Log("バットに接触。重力を適用しました。");
+            }
+        }
     }
 }
