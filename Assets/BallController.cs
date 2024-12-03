@@ -5,11 +5,20 @@ public class BallController : MonoBehaviour
     public float speed = 20f; // ボールのスピード
     public Transform ballSpawnPoint; // ボールが発射される位置
     public GameObject ballPrefab; // ボールのプレハブ
+    public GameObject targetMarkerPrefab; // ターゲット位置を示すマーカーのプレハブ
 
     private GameObject currentBall; // 現在のボール
+    private GameObject currentMarker; // 現在のマーカー
+    private Vector3 targetPosition; // ターゲット位置
 
     void Update()
     {
+        // 左クリックでターゲット位置を選択
+        if (Input.GetMouseButtonDown(0))
+        {
+            SetTargetPosition();
+        }
+
         // スペースキーでボールを投げる
         if (Input.GetKeyDown(KeyCode.Space))
         {
@@ -23,9 +32,21 @@ public class BallController : MonoBehaviour
         }
     }
 
+    void SetTargetPosition()
+    {
+        Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+
+        if (Physics.Raycast(ray, out RaycastHit hit))
+        {
+            // ターゲット位置を保存
+            targetPosition = hit.point;
+            Debug.Log($"ターゲット位置: {targetPosition}");
+        }
+    }
+
     void ThrowBall()
     {
-        if (TargetWall.targetPosition != Vector3.zero)
+        if (targetPosition != Vector3.zero)
         {
             // ボールを生成
             currentBall = Instantiate(ballPrefab, ballSpawnPoint.position, Quaternion.identity);
@@ -34,13 +55,23 @@ public class BallController : MonoBehaviour
             Rigidbody rb = currentBall.GetComponent<Rigidbody>();
             if (rb != null)
             {
-                Vector3 direction = (TargetWall.targetPosition - ballSpawnPoint.position).normalized;
-                rb.linearVelocity = direction * speed; // クリック位置に向かって発射
+                Vector3 direction = (targetPosition - ballSpawnPoint.position).normalized;
+                rb.linearVelocity = direction * speed; // マーカー位置に向かって発射
+                Debug.Log($"ボールを発射: {direction}");
             }
+
+            // ターゲットマーカーを生成
+            if (currentMarker == null)
+            {
+                currentMarker = Instantiate(targetMarkerPrefab);
+                currentMarker.GetComponent<Collider>().enabled = false; // 当たり判定を無効化
+            }
+            currentMarker.transform.position = targetPosition;
+            currentMarker.SetActive(true); // マーカーを表示
         }
         else
         {
-            Debug.LogWarning("ターゲットの位置が設定されていません！");
+            Debug.LogWarning("ターゲット位置が設定されていません！");
         }
     }
 
@@ -52,6 +83,12 @@ public class BallController : MonoBehaviour
             Destroy(currentBall);
         }
 
-        Debug.Log("ボールをリセットしました！");
+        // ターゲットマーカーを非表示
+        if (currentMarker != null)
+        {
+            currentMarker.SetActive(false);
+        }
+
+        Debug.Log("ボールとターゲットマーカーをリセットしました！");
     }
 }
