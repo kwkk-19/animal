@@ -2,83 +2,121 @@ using UnityEngine;
 
 public class GameStatusUI : MonoBehaviour
 {
-    public GameObject strikeIndicator1, strikeIndicator2; // ストライク表示
-    public GameObject ballIndicator1, ballIndicator2;     // ボール表示
-    public GameObject outIndicator1, outIndicator2;       // アウト表示
+    public GameObject[] strikeIndicators; // ストライク用インジケーター
+    public GameObject[] ballIndicators;   // ボール用インジケーター
+    public GameObject[] outIndicators;    // アウト用インジケーター
 
-    private int strikeCount = 0;
-    private int ballCount = 0;
-    private int outCount = 0;
+    private int strikeCount = 0; // 現在のストライク数
+    private int ballCount = 0;   // 現在のボール数
+    private int outCount = 0;    // 現在のアウト数
 
+    /// <summary>
+    /// ストライクを追加
+    /// </summary>
     public void AddStrike()
     {
-        if (strikeCount == 0)
+        Debug.Log($"現在のストライクカウント: {strikeCount}");
+
+        if (strikeCount < strikeIndicators.Length)
         {
-            strikeIndicator1.SetActive(true);
+            strikeIndicators[strikeCount].SetActive(true); // 該当インジケーターを表示
+            Debug.Log($"Strike Indicator {strikeCount + 1} が表示されました！");
+            strikeCount++;
         }
-        else if (strikeCount == 1)
+
+        if (strikeCount == strikeIndicators.Length) // ストライク2でアウト処理を実行
         {
-            strikeIndicator2.SetActive(true);
-        }
-        else if (strikeCount == 2)
-        {
-            ResetStrikeAndBall();
+            Debug.Log("ストライク2！アウトになります。");
+            ResetStrikeIndicators();
             AddOut();
         }
-        strikeCount++;
     }
 
+    /// <summary>
+    /// ボールを追加
+    /// </summary>
     public void AddBall()
     {
-        if (ballCount == 0)
+        Debug.Log($"現在のボールカウント: {ballCount}");
+
+        if (ballCount < ballIndicators.Length)
         {
-            ballIndicator1.SetActive(true);
+            ballIndicators[ballCount].SetActive(true); // 該当インジケーターを表示
+            Debug.Log($"Ball Indicator {ballCount + 1} が表示されました！");
+            ballCount++;
         }
-        else if (ballCount == 1)
+
+        if (ballCount == ballIndicators.Length) // ボール2でリセット
         {
-            ballIndicator2.SetActive(true);
-        }
-        else if (ballCount == 2)
-        {
+            Debug.Log("ボール2！ストライクとボールをリセットします。");
             ResetStrikeAndBall();
-            AddStrike(); // ボール3回でストライクに変換
         }
-        ballCount++;
     }
 
+    /// <summary>
+    /// アウトを追加
+    /// </summary>
     public void AddOut()
     {
-        if (outCount == 0)
+        Debug.Log($"現在のアウトカウント: {outCount}");
+
+        if (outCount < outIndicators.Length)
         {
-            outIndicator1.SetActive(true);
+            outIndicators[outCount].SetActive(true); // 該当インジケーターを表示
+            Debug.Log($"Out Indicator {outCount + 1} が表示されました！");
+            outCount++;
         }
-        else if (outCount == 1)
+
+        if (outCount == outIndicators.Length) // アウト2で全てリセット
         {
-            outIndicator2.SetActive(true);
-        }
-        else
-        {
-            Debug.Log("チェンジ！");
+            Debug.Log("アウト2！チェンジです！");
             ResetAll();
         }
-        outCount++;
     }
 
+    /// <summary>
+    /// ストライクとボールのインジケーターをリセット
+    /// </summary>
     public void ResetStrikeAndBall()
     {
-        strikeCount = 0;
+        ResetStrikeIndicators();
+
+        foreach (GameObject indicator in ballIndicators)
+        {
+            indicator?.SetActive(false); // ボールインジケーターを非表示
+        }
+
         ballCount = 0;
-        strikeIndicator1.SetActive(false);
-        strikeIndicator2.SetActive(false);
-        ballIndicator1.SetActive(false);
-        ballIndicator2.SetActive(false);
+        Debug.Log("ストライクとボールのインジケーターをリセットしました。");
     }
 
+    /// <summary>
+    /// ストライクインジケーターをリセット
+    /// </summary>
+    public void ResetStrikeIndicators()
+    {
+        foreach (GameObject indicator in strikeIndicators)
+        {
+            indicator?.SetActive(false); // ストライクインジケーターを非表示
+        }
+
+        strikeCount = 0;
+        Debug.Log("ストライクインジケーターをリセットしました。");
+    }
+
+    /// <summary>
+    /// 全てのインジケーターをリセット
+    /// </summary>
     public void ResetAll()
     {
         ResetStrikeAndBall();
+
+        foreach (GameObject indicator in outIndicators)
+        {
+            indicator?.SetActive(false); // アウトインジケーターを非表示
+        }
+
         outCount = 0;
-        outIndicator1.SetActive(false);
-        outIndicator2.SetActive(false);
+        Debug.Log("全てのインジケーターをリセットしました。");
     }
 }
