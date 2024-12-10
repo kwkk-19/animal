@@ -2,38 +2,39 @@ using UnityEngine;
 
 public class BatSwing : MonoBehaviour
 {
-    public Transform batBase; // バットの基底（回転の中心）
-    public Transform batTip; // バットの先端
-    public float swingSpeed = 300f; // スイング速度
-    public float maxSwingAngle = 90f; // スイングする最大角度
-    public BaseballGameController gameController; // BaseballGameController の参照
-    public Camera mainCamera; // メインカメラ
+    [Header("Swing Settings")]
+    public float swingSpeed = 300f;  // 度/秒
+    public float batLength = 1.0f;   // batBaseからbatTipまでの距離
+    [Tooltip("スイング角度に対する係数。1より大きくするとスイング角度が拡大する")]
+    public float angleMultiplier = 1.5f; // 少し多めに回転させるための係数例
 
-    private bool isSwinging = false; // スイング中フラグ
-    private float currentSwingAngle = 0f;
-    private Quaternion initialRotation; // 初期回転
-    private Quaternion targetRotation; // ターゲット回転
+    [Header("References")]
+    public Transform batBase;        // 持ち手位置（Pivot）
+    public Transform batTip;         // バット先端位置
+    public Camera mainCamera;
+    public Collider strikeZoneCollider;
+    public BaseballGameController gameController;
+
+    private bool isSwinging = false;
+    private float currentAngle = 0f;
+    private float maxSwingAngle;
+    private Quaternion initialRotation;
+    private Quaternion finalRotation;
+    private Quaternion startRotation;
 
     void Start()
     {
-        // 初期回転を記録
-        if (batBase == null)
-        {
-            Debug.LogError("BatBase が設定されていません！");
-            return;
-        }
-        initialRotation = batBase.rotation;
-
-        // MainCamera が設定されていない場合、自動取得
         if (mainCamera == null)
-        {
             mainCamera = Camera.main;
-        }
 
-        if (gameController == null)
-        {
-            Debug.LogError("BaseballGameController が設定されていません！");
-        }
+        if (strikeZoneCollider == null)
+            Debug.LogError("StrikeZoneCollider が設定されていません！");
+
+        if (batBase == null || batTip == null)
+            Debug.LogError("batBaseとbatTipが設定されていません！");
+
+        // バットの初期回転を記憶
+        startRotation = batBase.rotation;
     }
 
     void Update()
@@ -41,84 +42,80 @@ public class BatSwing : MonoBehaviour
         // 左クリックでスイング開始
         if (Input.GetMouseButtonDown(0) && !isSwinging)
         {
-            SetBatTargetAndSwing();
+            TrySetTargetAndSwing();
         }
 
-        // エンターキーでリセット
-        if (Input.GetKeyDown(KeyCode.Return))
-        {
-            ResetBatPosition();
-        }
-
-        // スイング動作中
+        // スイング中
         if (isSwinging)
         {
             PerformSwing();
         }
+
+        // Enterでリセット
+        if (Input.GetKeyDown(KeyCode.Return))
+        {
+            ResetBatPosition();
+        }
     }
 
-    /// <summary>
-    /// バットのターゲットを設定してスイング開始
-    /// </summary>
-    void SetBatTargetAndSwing()
+    void TrySetTargetAndSwing()
     {
         Ray ray = mainCamera.ScreenPointToRay(Input.mousePosition);
-
-        if (Physics.Raycast(ray, out RaycastHit hit))
+        if (strikeZoneCollider.Raycast(ray, out RaycastHit hit, Mathf.Infinity))
         {
-            Debug.Log($"クリックされた位置: {hit.point}");
+            Debug.Log($"ストライクゾーン内クリック: {hit.point}");
 
-            // バットの先端がクリック位置を向くように回転を設定
-            Vector3 direction = (hit.point - batTip.position).normalized;
-            targetRotation = Quaternion.LookRotation(direction, Vector3.up);
+            Vector3 diff = hit.point - batBase.position;
+            float dist = diff.magnitude;
+            Vector3 direction = diff.normalized;
 
-            // スイング開始
+            if (Mathf.Abs(dist - batLength) > 0.01f)
+            {
+                Debug.LogWarning($"クリック位置とbatBaseの距離({dist:F2})がbatLength({batLength:F2})と違います。先端通過の誤差が出る可能性があります。");
+            }
+
+            // up方向をdirectionへ向ける回転
+            Quaternion lookRotation = Quaternion.FromToRotation(Vector3.up, direction);
+
+            // 元のスイング角度を計算
+            float angle = Vector3.Angle(batBase.up, direction);
+            // ここで係数をかけてスイング角度を増やす
+            maxSwingAngle = angle * angleMultiplier;
+
+            float halfAngle = maxSwingAngle / 2f;
+            initialRotation = lookRotation * Quaternion.AngleAxis(-halfAngle, Vector3.right);
+            finalRotation = lookRotation * Quaternion.AngleAxis(halfAngle, Vector3.right);
+
             isSwinging = true;
-            currentSwingAngle = 0f;
-
-            // BaseballGameController の OnBatSwing を呼び出し
+            currentAngle = 0f;
             gameController?.OnBatSwing();
         }
         else
         {
-            Debug.LogWarning("クリック位置がストライクゾーン外です！");
+            Debug.LogWarning("ストライクゾーン外をクリックしました。");
         }
     }
 
-    /// <summary>
-    /// スイング処理
-    /// </summary>
     void PerformSwing()
     {
-        // スイング動作を実行
-        float swingStep = swingSpeed * Time.deltaTime;
-        currentSwingAngle += swingStep;
+        float step = swingSpeed * Time.deltaTime;
+        currentAngle += step;
 
-        if (currentSwingAngle <= maxSwingAngle)
+        float t = Mathf.Clamp01(currentAngle / maxSwingAngle);
+        batBase.rotation = Quaternion.Slerp(initialRotation, finalRotation, t);
+
+        if (t >= 1f)
         {
-            // バットをターゲット回転に向けて徐々に回転
-            batBase.rotation = Quaternion.Lerp(batBase.rotation, targetRotation, swingStep / maxSwingAngle);
-        }
-        else
-        {
-            // スイング完了
-            isSwinging = false;
-            Debug.Log("スイング完了");
+            Debug.Log("スイング完了、元の位置へ戻します");
+            ResetBatPosition();
         }
     }
 
-    /// <summary>
-    /// バットの位置をリセット
-    /// </summary>
     void ResetBatPosition()
     {
-        if (batBase == null) return;
-
-        // 初期回転に戻す
-        batBase.rotation = initialRotation;
+        batBase.rotation = startRotation;
         isSwinging = false;
-        currentSwingAngle = 0f;
-
-        Debug.Log("バットの位置をリセットしました！");
+        currentAngle = 0f;
+        Debug.Log("バット位置リセット");
     }
 }
