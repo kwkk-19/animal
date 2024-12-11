@@ -2,17 +2,19 @@ using UnityEngine;
 
 public class GameStatusUI : MonoBehaviour
 {
+    [Header("Indicators")]
     public GameObject[] strikeIndicators; // ストライク用インジケーター
     public GameObject[] ballIndicators;   // ボール用インジケーター
     public GameObject[] outIndicators;    // アウト用インジケーター
+
+    [Header("Audio Settings")]
+    public AudioSource audioSource;       // 効果音を再生するAudioSource
+    public AudioClip strikeSound;         // ストライク時の効果音
 
     private int strikeCount = 0; // 現在のストライク数
     private int ballCount = 0;   // 現在のボール数
     private int outCount = 0;    // 現在のアウト数
 
-    /// <summary>
-    /// ストライクを追加
-    /// </summary>
     public void AddStrike()
     {
         Debug.Log($"現在のストライクカウント: {strikeCount}");
@@ -22,6 +24,9 @@ public class GameStatusUI : MonoBehaviour
             strikeIndicators[strikeCount].SetActive(true); // 該当インジケーターを表示
             Debug.Log($"Strike Indicator {strikeCount + 1} が表示されました！");
             strikeCount++;
+
+            // 効果音を再生
+            PlayStrikeSound();
         }
 
         if (strikeCount == strikeIndicators.Length) // ストライク2でアウト処理を実行
@@ -32,9 +37,19 @@ public class GameStatusUI : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// ボールを追加
-    /// </summary>
+    private void PlayStrikeSound()
+    {
+        if (audioSource != null && strikeSound != null)
+        {
+            audioSource.PlayOneShot(strikeSound);
+            Debug.Log("ストライク効果音を再生しました！");
+        }
+        else
+        {
+            Debug.LogWarning("AudioSourceまたはStrikeSoundが設定されていません！");
+        }
+    }
+
     public void AddBall()
     {
         Debug.Log($"現在のボールカウント: {ballCount}");
@@ -53,9 +68,6 @@ public class GameStatusUI : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// アウトを追加
-    /// </summary>
     public void AddOut()
     {
         Debug.Log($"現在のアウトカウント: {outCount}");
@@ -74,9 +86,6 @@ public class GameStatusUI : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// ストライクとボールのインジケーターをリセット
-    /// </summary>
     public void ResetStrikeAndBall()
     {
         ResetStrikeIndicators();
@@ -90,9 +99,6 @@ public class GameStatusUI : MonoBehaviour
         Debug.Log("ストライクとボールのインジケーターをリセットしました。");
     }
 
-    /// <summary>
-    /// ストライクインジケーターをリセット
-    /// </summary>
     public void ResetStrikeIndicators()
     {
         foreach (GameObject indicator in strikeIndicators)
@@ -104,9 +110,6 @@ public class GameStatusUI : MonoBehaviour
         Debug.Log("ストライクインジケーターをリセットしました。");
     }
 
-    /// <summary>
-    /// 全てのインジケーターをリセット
-    /// </summary>
     public void ResetAll()
     {
         ResetStrikeAndBall();

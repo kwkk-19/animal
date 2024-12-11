@@ -5,8 +5,7 @@ public class BatSwing : MonoBehaviour
     [Header("Swing Settings")]
     public float swingSpeed = 300f;  // 度/秒
     public float batLength = 1.0f;   // batBaseからbatTipまでの距離
-    [Tooltip("スイング角度に対する係数。1より大きくするとスイング角度が拡大する")]
-    public float angleMultiplier = 1.5f; // 少し多めに回転させるための係数例
+    public float swingRange = 90f;   // スイングの角度幅（度数）
 
     [Header("References")]
     public Transform batBase;        // 持ち手位置（Pivot）
@@ -17,7 +16,6 @@ public class BatSwing : MonoBehaviour
 
     private bool isSwinging = false;
     private float currentAngle = 0f;
-    private float maxSwingAngle;
     private Quaternion initialRotation;
     private Quaternion finalRotation;
     private Quaternion startRotation;
@@ -66,23 +64,13 @@ public class BatSwing : MonoBehaviour
             Debug.Log($"ストライクゾーン内クリック: {hit.point}");
 
             Vector3 diff = hit.point - batBase.position;
-            float dist = diff.magnitude;
             Vector3 direction = diff.normalized;
-
-            if (Mathf.Abs(dist - batLength) > 0.01f)
-            {
-                Debug.LogWarning($"クリック位置とbatBaseの距離({dist:F2})がbatLength({batLength:F2})と違います。先端通過の誤差が出る可能性があります。");
-            }
 
             // up方向をdirectionへ向ける回転
             Quaternion lookRotation = Quaternion.FromToRotation(Vector3.up, direction);
 
-            // 元のスイング角度を計算
-            float angle = Vector3.Angle(batBase.up, direction);
-            // ここで係数をかけてスイング角度を増やす
-            maxSwingAngle = angle * angleMultiplier;
-
-            float halfAngle = maxSwingAngle / 2f;
+            // スイング角度を設定
+            float halfAngle = swingRange / 2f;
             initialRotation = lookRotation * Quaternion.AngleAxis(-halfAngle, Vector3.right);
             finalRotation = lookRotation * Quaternion.AngleAxis(halfAngle, Vector3.right);
 
@@ -101,7 +89,7 @@ public class BatSwing : MonoBehaviour
         float step = swingSpeed * Time.deltaTime;
         currentAngle += step;
 
-        float t = Mathf.Clamp01(currentAngle / maxSwingAngle);
+        float t = Mathf.Clamp01(currentAngle / swingRange);
         batBase.rotation = Quaternion.Slerp(initialRotation, finalRotation, t);
 
         if (t >= 1f)
